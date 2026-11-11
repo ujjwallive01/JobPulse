@@ -1,6 +1,9 @@
 import { useState, useEffect } from "react";
 import JobCard from "./components/JobCard";
 
+const SEEN_KEY = "seenJobs";
+const CHECK_INTERVAL_MS = 6 * 60 * 60 * 1000; // 6 hours
+
 function App() {
   const [jobs, setJobs] = useState([]);
   const [loading, setLoading] = useState(true);
@@ -8,6 +11,7 @@ function App() {
   const [search, setSearch] = useState("");
   const [category, setCategory] = useState("all");
   const [jobType, setJobType] = useState("all");
+  const [newIds, setNewIds] = useState([]);
 
   const [saved, setSaved] = useState(() => {
     try {
@@ -45,6 +49,24 @@ function App() {
         }));
 
         setJobs(cleaned);
+        setError("");
+
+        // Compare with the jobs seen on the last visit
+        let seen = null;
+        try {
+          seen = JSON.parse(localStorage.getItem(SEEN_KEY));
+        } catch {
+          seen = null;
+        }
+
+        const currentIds = cleaned.map((j) => j.id);
+
+        if (Array.isArray(seen)) {
+          const fresh = currentIds.filter((id) => !seen.includes(id));
+          setNewIds((prev) => [...new Set([...prev, ...fresh])]);
+        }
+
+        localStorage.setItem(SEEN_KEY, JSON.stringify(currentIds));
       } catch (err) {
         setError("Could not load jobs. Please try again later.");
       } finally {
@@ -53,6 +75,8 @@ function App() {
     }
 
     loadJobs();
+    const timer = setInterval(loadJobs, CHECK_INTERVAL_MS);
+    return () => clearInterval(timer);
   }, []);
 
   const categories = [...new Set(jobs.map((j) => j.category).filter(Boolean))];
@@ -77,6 +101,21 @@ function App() {
           Remotive
         </a>
       </p>
+
+      {newIds.length > 0 && (
+        <div className="mb-6 flex items-center justify-between rounded-lg border border-green-200 bg-green-50 p-4 text-green-800">
+          <span>
+            🔔 {newIds.length} new {newIds.length === 1 ? "job" : "jobs"} since
+            your last visit
+          </span>
+          <button
+            onClick={() => setNewIds([])}
+            className="text-sm underline"
+          >
+            Dismiss
+          </button>
+        </div>
+      )}
 
       <div className="mb-6 flex flex-wrap gap-3">
         <input
@@ -127,6 +166,7 @@ function App() {
             key={job.id}
             job={job}
             isSaved={saved.includes(job.id)}
+            isNew={newIds.includes(job.id)}
             onToggleSave={() => toggleSave(job.id)}
           />
         ))}

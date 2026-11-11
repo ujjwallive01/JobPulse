@@ -1,8 +1,15 @@
-function JobCard({ job, isSaved, onToggleSave }) {
+function JobCard({ job, isSaved, isNew, onToggleSave }) {
   return (
     <div className="rounded-xl border border-gray-200 bg-white p-5 shadow-sm transition hover:shadow-md">
       <div className="flex items-start justify-between gap-3">
-        <h3 className="text-lg font-semibold text-gray-900">{job.title}</h3>
+        <div>
+          {isNew && (
+            <span className="mb-2 inline-block rounded-full bg-green-100 px-2 py-0.5 text-xs font-medium text-green-700">
+              New
+            </span>
+          )}
+          <h3 className="text-lg font-semibold text-gray-900">{job.title}</h3>
+        </div>
         <button
           onClick={onToggleSave}
           className={`rounded-md px-2 py-1 text-sm ${
